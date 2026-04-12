@@ -17,9 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $routes[] = $row;
     }
 
-    // 2. Bobot SAW
-    $w_jarak = 0.4;
-    $w_medan = 0.6;
+    // 2. Bobot SAW (Setara: 0.5 untuk Jarak, 0.5 untuk Medan)
+    $w_jarak = 0.5;
+    $w_medan = 0.5;
 
     $recommendations = [];
 
