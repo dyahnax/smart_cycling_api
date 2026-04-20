@@ -53,10 +53,9 @@ foreach ($files as $file_path) {
 
     // Default values sesuai keinginan user
     $kondisi_medan = "Belum Diobservasi"; 
-    $waktu_dasar = 0; // Menyusul
 
-    $sql = "INSERT INTO routes (nama_rute, jarak, kondisi_medan, waktu_dasar, titik_koordinat) 
-            VALUES ('$nama_rute', '$jarak_km', '$kondisi_medan', '$waktu_dasar', '$json_coords')";
+    $sql = "INSERT INTO routes (nama_rute, jarak, kondisi_medan, titik_koordinat) 
+            VALUES ('$nama_rute', '$jarak_km', '$kondisi_medan', '$json_coords')";
 
     if (mysqli_query($con, $sql)) {
         // Pindahkan file ke folder 'done' agar tidak di-import ulang
