@@ -34,27 +34,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $route_medan = $route['kondisi_medan'];
 
         // --- Skor Kriteria 1: Jenis Sepeda vs Kondisi Medan ---
-        $skor_sepeda = 0.2; // Default skor rendah
+        $skor_sepeda = 0.5; // Default (setengah cocok)
 
         if ($jenis_sepeda == 'Road Bike') {
             if ($route_medan == 'Beraspal') $skor_sepeda = 1.0;
-            elseif ($route_medan == 'Campuran') $skor_sepeda = 0.5;
-        } elseif ($jenis_sepeda == 'MTB') {
-            if ($route_medan == 'Berkerikil/Tanah') $skor_sepeda = 1.0;
-            elseif ($route_medan == 'Campuran') $skor_sepeda = 0.5;
-        } elseif ($jenis_sepeda == 'Hybrid') {
+        } else if ($jenis_sepeda == 'MTB' || $jenis_sepeda == 'Hybrid') {
             if ($route_medan == 'Campuran') $skor_sepeda = 1.0;
-            else $skor_sepeda = 0.7; // Hybrid cocok di aspal maupun kerikil
         }
 
-        // --- Skor Kriteria 2: Tipe Pengguna vs Jarak (Normalisasi SAW) ---
-        $skor_pengguna = 0;
+        // --- Skor Kriteria 2: Tipe Pengguna vs Jarak ---
+        $skor_pengguna = 0.5; // Default
+
         if ($tipe_pengguna == 'Profesional') {
-            // Benefit: Semakin jauh semakin baik (Jarak / Max_Jarak)
-            $skor_pengguna = $route_jarak / $max_jarak;
+            // Profesional lebih suka rute jauh (> 10km)
+            if ($route_jarak > 10) $skor_pengguna = 1.0;
         } else {
-            // Cost: Semakin dekat semakin baik (Min_Jarak / Jarak)
-            $skor_pengguna = ($route_jarak > 0) ? ($min_jarak / $route_jarak) : 1.0;
+            // Amatir lebih suka rute dekat (< 10km)
+            if ($route_jarak <= 10) $skor_pengguna = 1.0;
         }
 
         // --- Total Skor SAW ---
