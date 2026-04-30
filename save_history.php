@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     $stmt = $con->prepare("INSERT INTO trip_history (user_email, nama_rute, jarak, kondisi_medan, target_waktu, status, jarak_tempuh, waktu_tempuh, kecepatan_rata_rata, tanggal) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $stmt->bind_param("sssssisiss", $user_email, $nama_rute, $jarak, $kondisi_medan, $target_waktu, $status, $jarak_tempuh, $waktu_tempuh, $kecepatan_rata_rata, $tanggal);
+    $stmt->bind_param("ssssssssss", $user_email, $nama_rute, $jarak, $kondisi_medan, $target_waktu, $status, $jarak_tempuh, $waktu_tempuh, $kecepatan_rata_rata, $tanggal);
 
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'History saved successfully']);

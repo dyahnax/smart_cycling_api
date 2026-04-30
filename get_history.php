@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET') {
     $history = [];
     while ($row = $result->fetch_assoc()) {
         $history[] = [
+            'id' => $row['id'],
             'user_email' => $row['user_email'],
             'nama_rute' => $row['nama_rute'],
             'jarak' => $row['jarak'],
