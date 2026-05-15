@@ -43,19 +43,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit();
     }
 
-    $sql = "UPDATE users SET " . implode(", ", $updates) . " WHERE username=?";
-    $params[] = $old_username;
-    $types .= "s";
+    // Mulai Transaksi
+    $con->begin_transaction();
 
-    $stmt = $con->prepare($sql);
-    $stmt->bind_param($types, ...$params);
+    try {
+        // 1. Update tabel users
+        $sql = "UPDATE users SET " . implode(", ", $updates) . " WHERE username=?";
+        $params[] = $old_username;
+        $types .= "s";
 
-    if ($stmt->execute()) {
+        $stmt = $con->prepare($sql);
+        $stmt->bind_param($types, ...$params);
+        $stmt->execute();
+        $stmt->close();
+
+        // 2. Jika username berubah, update juga di trip_history
+        if (!empty($new_username) && $new_username !== $old_username) {
+            $stmt_history = $con->prepare("UPDATE trip_history SET user_email=? WHERE user_email=?");
+            $stmt_history->bind_param("ss", $new_username, $old_username);
+            $stmt_history->execute();
+            $stmt_history->close();
+        }
+
+        $con->commit();
         echo json_encode(["status" => "success", "message" => "Profil berhasil diperbarui"]);
-    } else {
-        echo json_encode(["status" => "error", "message" => "Gagal: " . $con->error]);
+    } catch (Exception $e) {
+        $con->rollback();
+        echo json_encode(["status" => "error", "message" => "Gagal memperbarui profil: " . $e->getMessage()]);
     }
-    $stmt->close();
 }
 $con->close();
 ?>
