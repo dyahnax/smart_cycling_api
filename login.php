@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 "status"  => "success",
                 "message" => "Login Berhasil",
                 "user"    => [
+                    "id_users" => $user['id_users'],
                     "nama"     => $user['nama'],
                     "username" => $user['username'],
                     "photo_url" => $user['photo_url']

@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit();
     }
 
-    $stmt = $con->prepare("DELETE FROM trip_history WHERE id = ?");
+    $stmt = $con->prepare("DELETE FROM trip_history WHERE id_trip_history = ?");
     $stmt->bind_param("i", $id);
 
     if ($stmt->execute()) {

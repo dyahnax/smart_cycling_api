@@ -3,9 +3,9 @@
 require 'koneksi.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = $_POST['username'] ?? '';
+    $id_users = $_POST['id_users'] ?? '';
 
-    if(empty($username) || !isset($_FILES['photo'])) {
+    if(empty($id_users) || !isset($_FILES['photo'])) {
         echo json_encode(["status" => "error", "message" => "Data tidak lengkap"]);
         exit();
     }
@@ -22,8 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (move_uploaded_file($_FILES["photo"]["tmp_name"], $target_file)) {
         $url_path = "uploads/" . $filename; 
 
-        $stmt = $con->prepare("UPDATE users SET photo_url=? WHERE username=?");
-        $stmt->bind_param("ss", $url_path, $username);
+        $stmt = $con->prepare("UPDATE users SET photo_url=? WHERE id_users=?");
+        $stmt->bind_param("si", $url_path, $id_users);
         
         if ($stmt->execute()) {
             echo json_encode(["status" => "success", "message" => "Foto diunggah", "photo_url" => $url_path]);

@@ -3,21 +3,26 @@
 require 'koneksi.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $user = $_POST['username'] ?? '';
+    $id_users = $_POST['id_users'] ?? '';
+
+    if (empty($id_users)) {
+        echo json_encode(["status" => "error", "message" => "ID User tidak ditemukan"]);
+        exit();
+    }
 
     // Mulai Transaksi
     $con->begin_transaction();
 
     try {
-        // 1. Hapus Riwayat Perjalanan
-        $stmt_history = $con->prepare("DELETE FROM trip_history WHERE user_email=?");
-        $stmt_history->bind_param("s", $user);
+        // 1. Hapus Riwayat Perjalanan (Otomatis terhapus jika pakai FK CASCADE, tapi eksplisit juga boleh)
+        $stmt_history = $con->prepare("DELETE FROM trip_history WHERE id_users=?");
+        $stmt_history->bind_param("i", $id_users);
         $stmt_history->execute();
         $stmt_history->close();
 
         // 2. Hapus User
-        $stmt = $con->prepare("DELETE FROM users WHERE username=?");
-        $stmt->bind_param("s", $user);
+        $stmt = $con->prepare("DELETE FROM users WHERE id_users=?");
+        $stmt->bind_param("i", $id_users);
         $stmt->execute();
         $stmt->close();
 

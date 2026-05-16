@@ -2,15 +2,15 @@
 require 'koneksi.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $user_email = $_POST['user_email'] ?? '';
+    $id_users = $_POST['id_users'] ?? '';
 
-    if (empty($user_email)) {
+    if (empty($id_users)) {
         echo json_encode(['status' => 'error', 'message' => 'Missing parameters']);
         exit();
     }
 
-    $stmt = $con->prepare("DELETE FROM trip_history WHERE user_email = ?");
-    $stmt->bind_param("s", $user_email);
+    $stmt = $con->prepare("DELETE FROM trip_history WHERE id_users = ?");
+    $stmt->bind_param("i", $id_users);
 
     if ($stmt->execute()) {
         echo json_encode(['status' => 'success', 'message' => 'History cleared successfully']);

@@ -3,13 +3,13 @@
 require 'koneksi.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $old_username = $_POST['old_username'] ?? ''; 
+    $id_users = $_POST['id_users'] ?? ''; 
     $new_nama     = $_POST['nama'] ?? '';
     $new_username = $_POST['username'] ?? '';
     $new_password = $_POST['password'] ?? '';
 
-    if(empty($old_username)) {
-        echo json_encode(["status" => "error", "message" => "Identitas pengguna tidak ditemukan"]);
+    if(empty($id_users)) {
+        echo json_encode(["status" => "error", "message" => "ID Pengguna tidak ditemukan"]);
         exit();
     }
 
@@ -43,34 +43,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit();
     }
 
-    // Mulai Transaksi
-    $con->begin_transaction();
+    // Eksekusi Update
+    $sql = "UPDATE users SET " . implode(", ", $updates) . " WHERE id_users=?";
+    $params[] = $id_users;
+    $types .= "i";
 
-    try {
-        // 1. Update tabel users
-        $sql = "UPDATE users SET " . implode(", ", $updates) . " WHERE username=?";
-        $params[] = $old_username;
-        $types .= "s";
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param($types, ...$params);
 
-        $stmt = $con->prepare($sql);
-        $stmt->bind_param($types, ...$params);
-        $stmt->execute();
-        $stmt->close();
-
-        // 2. Jika username berubah, update juga di trip_history
-        if (!empty($new_username) && $new_username !== $old_username) {
-            $stmt_history = $con->prepare("UPDATE trip_history SET user_email=? WHERE user_email=?");
-            $stmt_history->bind_param("ss", $new_username, $old_username);
-            $stmt_history->execute();
-            $stmt_history->close();
-        }
-
-        $con->commit();
+    if ($stmt->execute()) {
         echo json_encode(["status" => "success", "message" => "Profil berhasil diperbarui"]);
-    } catch (Exception $e) {
-        $con->rollback();
-        echo json_encode(["status" => "error", "message" => "Gagal memperbarui profil: " . $e->getMessage()]);
+    } else {
+        echo json_encode(["status" => "error", "message" => "Gagal memperbarui profil: " . $con->error]);
     }
+    $stmt->close();
 }
 $con->close();
 ?>

@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $final_score = ($w_sepeda * $skor_sepeda) + ($w_pengguna * $skor_pengguna);
 
         $recommendations[] = [
-            "id" => $route['id'],
+            "id_routes" => $route['id_routes'],
             "nama_rute" => $route['nama_rute'],
             "jarak" => $route_jarak,
             "kondisi_medan" => $route_medan,

@@ -2,23 +2,30 @@
 require 'koneksi.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'GET') {
-    $user_email = $_GET['user_email'] ?? '';
+    $id_users = $_GET['id_users'] ?? '';
 
-    if (empty($user_email)) {
+    if (empty($id_users)) {
         echo json_encode([]);
         exit();
     }
 
-    $stmt = $con->prepare("SELECT * FROM trip_history WHERE user_email = ? ORDER BY tanggal DESC");
-    $stmt->bind_param("s", $user_email);
+    $sql = "SELECT th.*, r.nama_rute, r.jarak, r.kondisi_medan 
+            FROM trip_history th 
+            JOIN routes r ON th.id_routes = r.id_routes 
+            WHERE th.id_users = ? 
+            ORDER BY th.tanggal DESC";
+            
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param("i", $id_users);
     $stmt->execute();
     $result = $stmt->get_result();
 
     $history = [];
     while ($row = $result->fetch_assoc()) {
         $history[] = [
-            'id' => $row['id'],
-            'user_email' => $row['user_email'],
+            'id' => $row['id_trip_history'],
+            'id_users' => $row['id_users'],
+            'id_routes' => $row['id_routes'],
             'nama_rute' => $row['nama_rute'],
             'jarak' => $row['jarak'],
             'kondisi_medan' => $row['kondisi_medan'],
