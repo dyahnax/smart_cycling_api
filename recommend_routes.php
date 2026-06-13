@@ -11,72 +11,74 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // 1. Ambil semua rute dari database
     $query = "SELECT * FROM routes";
     $result = mysqli_query($con, $query);
-    $routes = [];
-
-    $max_jarak = 0.1; // Menghindari pembagian dengan nol
-    $min_jarak = 999999;
+    $all_routes = [];
 
     while ($row = mysqli_fetch_assoc($result)) {
-        $routes[] = $row;
-        $jarak = (float)$row['jarak'];
+        $all_routes[] = $row;
+    }
+
+    // 2. Filter Rute Berdasarkan Input Pengguna
+    $filtered_routes = [];
+    foreach ($all_routes as $route) {
+        $jarak = (float)$route['jarak'];
+        $medan = $route['kondisi_medan'];
+
+        // Filter Tipe Pengguna (Jarak)
+        if ($tipe_pengguna == 'Profesional' && $jarak <= 10) continue;
+        if ($tipe_pengguna != 'Profesional' && $jarak > 10) continue; // Asumsi Amatir
+
+        // Filter Jenis Sepeda (Medan)
+        if ($jenis_sepeda == 'Road Bike' && $medan != 'Beraspal') continue;
+        if (($jenis_sepeda == 'MTB' || $jenis_sepeda == 'Hybrid') && $medan != 'Campuran') continue;
+
+        $filtered_routes[] = $route;
+    }
+
+    // Jika tidak ada rute yang cocok setelah di-filter, langsung kembalikan array kosong
+    if (count($filtered_routes) == 0) {
+        echo json_encode(["status" => "success", "data" => []]);
+        exit;
+    }
+
+    // 3. Menentukan Nilai Max dan Min Jarak untuk Menghitung Skor Kecocokan (Akurasi UI)
+    $max_jarak = 0.1;
+    $min_jarak = 999999;
+
+    foreach ($filtered_routes as $route) {
+        $jarak = (float)$route['jarak'];
+
         if ($jarak > $max_jarak) $max_jarak = $jarak;
         if ($jarak < $min_jarak) $min_jarak = $jarak;
     }
 
-    // 2. Bobot SAW (Jenis Sepeda: 0.7, Tipe Pengguna: 0.3)
-    $w_sepeda = 0.7;
-    $w_pengguna = 0.3;
-
+    // 4. Proses Perhitungan Kecocokan & Pembuatan List Rekomendasi
     $recommendations = [];
 
-    foreach ($routes as $route) {
-        $route_jarak = (float)$route['jarak'];
-        $route_medan = $route['kondisi_medan'];
+    foreach ($filtered_routes as $route) {
+        $jarak = (float)$route['jarak'];
 
-        // --- Skor Kriteria 1: Jenis Sepeda vs Kondisi Medan ---
-        $skor_sepeda = 0.5; // Default (setengah cocok)
-
-        if ($jenis_sepeda == 'Road Bike') {
-            if ($route_medan == 'Beraspal') $skor_sepeda = 1.0;
-        } else if ($jenis_sepeda == 'MTB' || $jenis_sepeda == 'Hybrid') {
-            if ($route_medan == 'Campuran') $skor_sepeda = 1.0;
-        }
-
-        // --- Skor Kriteria 2: Tipe Pengguna vs Jarak ---
-        $skor_pengguna = 0.5; // Default
-
+        // Menghitung persentase kecocokan murni dari jarak (karena medan sudah 100% cocok dari filter)
         if ($tipe_pengguna == 'Profesional') {
-            // Profesional lebih suka rute jauh (> 10km)
-            if ($route_jarak > 10) $skor_pengguna = 1.0;
+            // Profesional suka jarak jauh (jarak maksimal = 100% akurat)
+            $kecocokan = $jarak / $max_jarak;
         } else {
-            // Amatir lebih suka rute dekat (< 10km)
-            if ($route_jarak <= 10) $skor_pengguna = 1.0;
+            // Amatir suka jarak dekat (jarak minimal = 100% akurat)
+            $kecocokan = $min_jarak / ($jarak > 0 ? $jarak : 0.1);
         }
-
-        // --- Total Skor SAW ---
-        $final_score = ($w_sepeda * $skor_sepeda) + ($w_pengguna * $skor_pengguna);
 
         $recommendations[] = [
             "id_routes" => $route['id_routes'],
             "nama_rute" => $route['nama_rute'],
-            "jarak" => $route_jarak,
-            "kondisi_medan" => $route_medan,
+            "jarak" => $jarak,
+            "kondisi_medan" => $route['kondisi_medan'],
             "waktu_dasar" => (int)$route['waktu_dasar'],
             "titik_koordinat" => $route['titik_koordinat'],
-            "skor" => round($final_score, 4)
+            "skor" => round($kecocokan, 4) // Tetap pakai key "skor" agar aplikasi Flutter tidak error
         ];
     }
 
-    // 3. Sorting berdasarkan skor tertinggi
-    usort($recommendations, function($a, $b) use ($tipe_pengguna) {
-        // Jika skor sama, gunakan Jarak sebagai Tie-breaker
-        if ($a['skor'] == $b['skor']) {
-            if ($tipe_pengguna == 'Profesional') {
-                return $b['jarak'] <=> $a['jarak']; // Jauh di atas
-            } else {
-                return $a['jarak'] <=> $b['jarak']; // Dekat di atas
-            }
-        }
+    // 5. Sorting berdasarkan skor kecocokan tertinggi
+    usort($recommendations, function($a, $b) {
         return $b['skor'] <=> $a['skor'];
     });
 
