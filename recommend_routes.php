@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $jenis_sepeda = isset($_POST['jenis_sepeda']) ? $_POST['jenis_sepeda'] : '';
     $tipe_pengguna = isset($_POST['tipe_pengguna']) ? $_POST['tipe_pengguna'] : '';
 
-    // 1. Ambil semua rute dari database
+    //Ambil semua rute dari database
     $query = "SELECT * FROM routes";
     $result = mysqli_query($con, $query);
     $all_routes = [];
@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $all_routes[] = $row;
     }
 
-    // 2. Filter Rute Berdasarkan Input Pengguna
+    // 1. Filter Rute Berdasarkan Input Pengguna
     $filtered_routes = [];
     foreach ($all_routes as $route) {
         $jarak = (float)$route['jarak'];
@@ -40,30 +40,35 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit;
     }
 
-    // 3. Menentukan Nilai Max dan Min Jarak untuk Menghitung Skor Kecocokan (Akurasi UI)
-    $max_jarak = 0.1;
-    $min_jarak = 999999;
-
-    foreach ($filtered_routes as $route) {
-        $jarak = (float)$route['jarak'];
-
-        if ($jarak > $max_jarak) $max_jarak = $jarak;
-        if ($jarak < $min_jarak) $min_jarak = $jarak;
-    }
-
-    // 4. Proses Perhitungan Kecocokan & Pembuatan List Rekomendasi
-    $recommendations = [];
-
-    foreach ($filtered_routes as $route) {
-        $jarak = (float)$route['jarak'];
-
-        // Menghitung persentase kecocokan murni dari jarak (karena medan sudah 100% cocok dari filter)
+    // 2. Sorting berdasarkan jarak sesuai tipe pengguna
+    usort($filtered_routes, function($a, $b) use ($tipe_pengguna) {
+        $jarak_a = (float)$a['jarak'];
+        $jarak_b = (float)$b['jarak'];
+        
         if ($tipe_pengguna == 'Profesional') {
-            // Profesional suka jarak jauh (jarak maksimal = 100% akurat)
-            $kecocokan = $jarak / $max_jarak;
+            // Profesional: Jarak terjauh di atas (Descending)
+            return $jarak_b <=> $jarak_a;
         } else {
-            // Amatir suka jarak dekat (jarak minimal = 100% akurat)
-            $kecocokan = $min_jarak / ($jarak > 0 ? $jarak : 0.1);
+            // Amatir: Jarak terdekat di atas (Ascending)
+            return $jarak_a <=> $jarak_b;
+        }
+    });
+
+    // 3. Scoring (Perhitungan Persentase Kecocokan)
+    // Karena sudah diurutkan, nilai Max (untuk Profesional) atau Min (untuk Amatir) 
+    // pasti berada di urutan pertama (index 0).
+    $referensi_jarak = (float)$filtered_routes[0]['jarak'];
+
+    $recommendations = [];
+    foreach ($filtered_routes as $route) {
+        $jarak = (float)$route['jarak'];
+        
+        if ($tipe_pengguna == 'Profesional') {
+            // Profesional: Skor = Jarak saat ini / Jarak Maksimal (diambil dari referensi)
+            $kecocokan = $jarak / ($referensi_jarak > 0 ? $referensi_jarak : 0.1);
+        } else {
+            // Amatir: Skor = Jarak Minimal (diambil dari referensi) / Jarak saat ini
+            $kecocokan = $referensi_jarak / ($jarak > 0 ? $jarak : 0.1);
         }
 
         $recommendations[] = [
@@ -73,14 +78,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             "kondisi_medan" => $route['kondisi_medan'],
             "waktu_dasar" => (int)$route['waktu_dasar'],
             "titik_koordinat" => $route['titik_koordinat'],
-            "skor" => round($kecocokan, 4) // Tetap pakai key "skor" agar aplikasi Flutter tidak error
+            "skor" => round($kecocokan, 4) // Mengembalikan nilai persentase agar UI tetap berjalan dengan akurat
         ];
     }
-
-    // 5. Sorting berdasarkan skor kecocokan tertinggi
-    usort($recommendations, function($a, $b) {
-        return $b['skor'] <=> $a['skor'];
-    });
 
     echo json_encode([
         "status" => "success",
